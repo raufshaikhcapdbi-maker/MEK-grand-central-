@@ -198,23 +198,130 @@ const statObserver = new IntersectionObserver(
 
 document.querySelectorAll(".stat-grid article").forEach((item) => statObserver.observe(item));
 
-const heroImage = document.querySelector(".hero-media img");
+/* =========================================================
+   HERO IMAGE SLIDER
+========================================================= */
+
+const heroSlider = document.querySelector(".hero-slider");
+
+if (heroSlider) {
+
+  const slides = heroSlider.querySelectorAll(".hero-slide");
+  const dots = heroSlider.querySelectorAll(".hero-dot");
+  const prevButton = heroSlider.querySelector(".hero-slider-prev");
+  const nextButton = heroSlider.querySelector(".hero-slider-next");
+
+  let currentSlide = 0;
+  let heroTimer = null;
+
+  function showHeroSlide(index) {
+
+    currentSlide =
+      (index + slides.length) % slides.length;
+
+    slides.forEach((slide, i) => {
+      slide.classList.toggle(
+        "active",
+        i === currentSlide
+      );
+    });
+
+    dots.forEach((dot, i) => {
+      dot.classList.toggle(
+        "active",
+        i === currentSlide
+      );
+    });
+  }
+
+  function startHeroSlider() {
+
+    clearInterval(heroTimer);
+
+    heroTimer = window.setInterval(() => {
+      showHeroSlide(currentSlide + 1);
+    }, 5000);
+  }
+
+  function resetHeroSlider() {
+    startHeroSlider();
+  }
+
+  /* Next */
+  nextButton?.addEventListener("click", () => {
+    showHeroSlide(currentSlide + 1);
+    resetHeroSlider();
+  });
+
+  /* Previous */
+  prevButton?.addEventListener("click", () => {
+    showHeroSlide(currentSlide - 1);
+    resetHeroSlider();
+  });
+
+  /* Dots */
+  dots.forEach((dot, index) => {
+
+    dot.addEventListener("click", () => {
+      showHeroSlide(index);
+      resetHeroSlider();
+    });
+
+  });
+
+  /* Pause while mouse is over slider */
+  heroSlider.addEventListener("mouseenter", () => {
+    clearInterval(heroTimer);
+  });
+
+  heroSlider.addEventListener("mouseleave", () => {
+    startHeroSlider();
+  });
+
+  /* Start */
+  showHeroSlide(0);
+  startHeroSlider();
+}
+
+
+/* =========================================================
+   HERO PARALLAX
+========================================================= */
+
+const heroImages = document.querySelectorAll(
+  ".hero-slider .hero-slide img"
+);
+
 let ticking = false;
 
 const updateParallax = () => {
-  if (!heroImage || reduceMotion) return;
-  const offset = Math.min(window.scrollY * 0.08, 70);
-  heroImage.style.transform = `scale(1.06) translateY(${offset}px)`;
+
+  if (!heroImages.length || reduceMotion) {
+    ticking = false;
+    return;
+  }
+
+  const offset = Math.min(window.scrollY * 0.04, 35);
+
+  heroImages.forEach((image) => {
+    image.style.setProperty(
+      "--hero-parallax",
+      `${offset}px`
+    );
+  });
+
   ticking = false;
 };
 
 window.addEventListener(
   "scroll",
   () => {
+
     if (!ticking) {
       requestAnimationFrame(updateParallax);
       ticking = true;
     }
+
   },
   { passive: true }
 );
