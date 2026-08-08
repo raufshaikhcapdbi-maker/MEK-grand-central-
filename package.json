@@ -1,0 +1,10 @@
+{
+  "name": "grand-meridian-landing",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MEK Grand Central landing page with Vercel lead capture.",
+  "scripts": {
+    "preview": "node local-server.js",
+    "deploy": "npx vercel --prod"
+  }
+}
