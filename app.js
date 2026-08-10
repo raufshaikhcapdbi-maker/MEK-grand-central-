@@ -5,6 +5,7 @@ const closeButtons = document.querySelectorAll("[data-close-form]");
 const menuToggle = document.querySelector(".menu-toggle");
 const mobileNav = document.querySelector(".mobile-nav");
 const forms = document.querySelectorAll("[data-lead-form]");
+const scrollTopButton = document.querySelector(".scroll-top");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 document.body.classList.add("is-loading");
@@ -17,7 +18,7 @@ window.addEventListener("load", () => {
 });
 
 const revealTargets = [
-  ...document.querySelectorAll(".section, .stat-grid article, .feature-list div, .advantage-grid article, .amenity-strip span, .gallery-card, .faq-list details"),
+  ...document.querySelectorAll(".section, .stat-grid article, .snapshot-grid article, .feature-list div, .advantage-grid article, .amenity-strip span, .floor-plan-card, .gallery-stage, .gallery-quote, .gallery-card, .contact-map, .contact-detail-list div, .faq-list details"),
 ];
 
 if (!reduceMotion) {
@@ -46,6 +47,8 @@ if (!reduceMotion) {
 }
 
 const setModal = (open) => {
+  if (!modal) return;
+
   modal.classList.toggle("is-open", open);
   modal.setAttribute("aria-hidden", String(!open));
   document.body.classList.toggle("modal-open", open);
@@ -71,7 +74,7 @@ document.addEventListener("keydown", (event) => {
 });
 
 menuToggle?.addEventListener("click", () => {
-  const isOpen = mobileNav.classList.toggle("is-open");
+  const isOpen = mobileNav?.classList.toggle("is-open") || false;
   menuToggle.setAttribute("aria-expanded", String(isOpen));
 });
 
@@ -106,6 +109,8 @@ forms.forEach((form) => {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const submit = form.querySelector("button[type='submit']");
+    if (!submit) return;
+
     const formData = new FormData(form);
     const payload = Object.fromEntries(formData.entries());
     payload.phone = normalizePhone(payload.phone || "");
@@ -198,6 +203,21 @@ const statObserver = new IntersectionObserver(
 
 document.querySelectorAll(".stat-grid article").forEach((item) => statObserver.observe(item));
 
+const toggleScrollTop = () => {
+  if (!scrollTopButton) return;
+  scrollTopButton.classList.toggle("is-visible", window.scrollY > 560);
+};
+
+scrollTopButton?.addEventListener("click", () => {
+  window.scrollTo({
+    top: 0,
+    behavior: reduceMotion ? "auto" : "smooth",
+  });
+});
+
+toggleScrollTop();
+window.addEventListener("scroll", toggleScrollTop, { passive: true });
+
 /* =========================================================
    HERO IMAGE SLIDER
 ========================================================= */
@@ -215,6 +235,7 @@ if (heroSlider) {
   let heroTimer = null;
 
   function showHeroSlide(index) {
+    if (!slides.length) return;
 
     currentSlide =
       (index + slides.length) % slides.length;
@@ -235,6 +256,7 @@ if (heroSlider) {
   }
 
   function startHeroSlider() {
+    if (reduceMotion || slides.length < 2) return;
 
     clearInterval(heroTimer);
 
@@ -269,18 +291,122 @@ if (heroSlider) {
 
   });
 
-  /* Pause while mouse is over slider */
-  heroSlider.addEventListener("mouseenter", () => {
-    clearInterval(heroTimer);
-  });
+  if (!reduceMotion) {
+    /* Pause while mouse is over slider */
+    heroSlider.addEventListener("mouseenter", () => {
+      clearInterval(heroTimer);
+    });
 
-  heroSlider.addEventListener("mouseleave", () => {
-    startHeroSlider();
-  });
+    heroSlider.addEventListener("mouseleave", () => {
+      startHeroSlider();
+    });
+  }
 
   /* Start */
   showHeroSlide(0);
   startHeroSlider();
+}
+
+/* =========================================================
+   REFERENCE GALLERY SLIDER
+========================================================= */
+
+const gallerySlider = document.querySelector("[data-gallery-slider]");
+
+if (gallerySlider) {
+  const galleryImages = [...gallerySlider.querySelectorAll(".gallery-image")];
+  const galleryDots = [...gallerySlider.querySelectorAll(".gallery-dot")];
+  const galleryPrev = gallerySlider.querySelector(".gallery-prev");
+  const galleryNext = gallerySlider.querySelector(".gallery-next");
+  const galleryBackdrop = gallerySlider.querySelector(".gallery-backdrop");
+  const bgLayers = [document.createElement("span"), document.createElement("span")];
+
+  let currentGalleryImage = 0;
+  let activeBgLayer = 0;
+  let galleryTimer = null;
+
+  bgLayers.forEach((layer) => {
+    layer.className = "gallery-bg-layer";
+    galleryBackdrop?.appendChild(layer);
+  });
+
+  function imageUrlAt(index) {
+    return galleryImages[index]?.currentSrc || galleryImages[index]?.src || "";
+  }
+
+  function setGalleryBackground(url, immediate = false) {
+    if (!url || !bgLayers.length) return;
+
+    const nextLayer = immediate ? activeBgLayer : 1 - activeBgLayer;
+    bgLayers[nextLayer].style.backgroundImage = `url("${url}")`;
+    bgLayers[nextLayer].classList.add("active");
+
+    if (immediate) {
+      bgLayers[1 - nextLayer].classList.remove("active");
+    } else {
+      bgLayers[activeBgLayer].classList.remove("active");
+    }
+
+    activeBgLayer = nextLayer;
+  }
+
+  function showGalleryImage(index) {
+    if (!galleryImages.length) return;
+
+    currentGalleryImage = (index + galleryImages.length) % galleryImages.length;
+
+    galleryImages.forEach((image, imageIndex) => {
+      const isActive = imageIndex === currentGalleryImage;
+      image.classList.toggle("active", isActive);
+      image.setAttribute("aria-hidden", String(!isActive));
+    });
+
+    galleryDots.forEach((dot, dotIndex) => {
+      dot.classList.toggle("active", dotIndex === currentGalleryImage);
+    });
+
+    setGalleryBackground(imageUrlAt(currentGalleryImage));
+  }
+
+  function startGallerySlider() {
+    if (reduceMotion || galleryImages.length < 2) return;
+
+    clearInterval(galleryTimer);
+    galleryTimer = window.setInterval(() => {
+      showGalleryImage(currentGalleryImage + 1);
+    }, 4300);
+  }
+
+  function resetGallerySlider() {
+    clearInterval(galleryTimer);
+    startGallerySlider();
+  }
+
+  galleryNext?.addEventListener("click", () => {
+    showGalleryImage(currentGalleryImage + 1);
+    resetGallerySlider();
+  });
+
+  galleryPrev?.addEventListener("click", () => {
+    showGalleryImage(currentGalleryImage - 1);
+    resetGallerySlider();
+  });
+
+  galleryDots.forEach((dot, index) => {
+    dot.addEventListener("click", () => {
+      showGalleryImage(index);
+      resetGallerySlider();
+    });
+  });
+
+  gallerySlider.addEventListener("mouseenter", () => clearInterval(galleryTimer));
+  gallerySlider.addEventListener("mouseleave", startGallerySlider);
+  gallerySlider.addEventListener("focusin", () => clearInterval(galleryTimer));
+  gallerySlider.addEventListener("focusout", startGallerySlider);
+
+  setGalleryBackground(imageUrlAt(0), true);
+  showGalleryImage(0);
+  startGallerySlider();
 }
 
 
@@ -327,5 +453,21 @@ window.addEventListener(
 );
 
 window.setTimeout(() => {
-  setModal(true);
-}, 5000);
+  let hasSeenPrompt = false;
+
+  try {
+    hasSeenPrompt = sessionStorage.getItem("mekLeadPromptSeen") === "true";
+  } catch (error) {
+    hasSeenPrompt = true;
+  }
+
+  if (!hasSeenPrompt && window.scrollY < 120) {
+    try {
+      sessionStorage.setItem("mekLeadPromptSeen", "true");
+    } catch (error) {
+      // Ignore storage failures; the modal can still open from explicit CTAs.
+    }
+
+    setModal(true);
+  }
+}, 9000);
